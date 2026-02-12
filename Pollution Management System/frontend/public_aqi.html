@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Air Quality Index - Pollution Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+
+<!-- Header -->
+<header class="dashboard-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="dashboard-logo">
+                <i class="fas fa-wind me-2"></i>
+                AirWatch
+            </div>
+            <div>
+                <a href="index.html" class="btn btn-outline-modern btn-sm">
+                    <i class="fas fa-sign-in-alt me-1"></i> Login
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Hero Section -->
+<section class="aqi-hero">
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-3">
+            <i class="fas fa-cloud-sun me-3"></i>
+            Real-Time Air Quality Monitoring
+        </h1>
+        <p class="lead mb-0">
+            Track air pollution levels in your city and plan your day accordingly
+        </p>
+    </div>
+</section>
+
+<!-- Main Content -->
+<div class="container">
+    <!-- Test Data Warning -->
+    <div class="alert alert-warning alert-modern text-center" style="margin-top: -60px; position: relative; z-index: 20;">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Demo Mode:</strong> Currently showing sample test data. For accurate real-time AQI, configure monitoring stations with live data sources.
+    </div>
+    
+    <!-- Current Location AQI Card -->
+    <div class="current-aqi-card" id="currentAqiCard">
+        <div class="text-center">
+            <div class="loading-spinner mx-auto mb-3" id="loadingSpinner"></div>
+            <p class="text-muted" id="loadingText">
+                <i class="fas fa-map-marker-alt me-2"></i>
+                Detecting your location...
+            </p>
+        </div>
+        
+        <!-- AQI Display (Hidden initially) -->
+        <div id="aqiDisplay" class="d-none">
+            <div class="text-center">
+                <h5 class="text-muted mb-3">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    Your Current Location
+                </h5>
+                <div class="aqi-value-display" id="aqiValue">--</div>
+                <div class="mb-3">
+                    <span class="aqi-badge" id="aqiCategory">Loading...</span>
+                </div>
+                <p class="text-muted mb-3" id="aqiHealthMessage">Fetching air quality data...</p>
+                
+                <!-- PM Details -->
+                <div class="pm-details justify-content-center" id="pmDetails" style="max-width: 400px; margin: 0 auto;">
+                    <div class="pm-item">
+                        <small>PM2.5</small>
+                        <span class="pm-value" id="pm25Value">--</span>
+                        <small class="text-muted">μg/m³</small>
+                    </div>
+                    <div class="pm-item">
+                        <small>PM10</small>
+                        <span class="pm-value" id="pm10Value">--</span>
+                        <small class="text-muted">μg/m³</small>
+                    </div>
+                </div>
+                
+                <p class="text-muted mt-3 mb-0" id="aqiSource">
+                    <i class="fas fa-satellite-dish me-2"></i>
+                    <small id="sourceText">Loading source...</small>
+                </p>
+
+                <!-- Source Comparison -->
+                <div class="row g-3 mt-4" id="sourceCompare">
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="fw-semibold text-muted">
+                                        <i class="fas fa-satellite me-2"></i>WAQI
+                                    </div>
+                                    <span class="aqi-badge bg-secondary" id="waqiCategory">--</span>
+                                </div>
+                                <div class="display-6 fw-bold" id="waqiAqi">--</div>
+                                <div class="text-muted small" id="waqiStation">Station: --</div>
+                                <div class="text-muted small mt-1">
+                                    PM2.5: <span id="waqiPm25">--</span> | PM10: <span id="waqiPm10">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="fw-semibold text-muted">
+                                        <i class="fas fa-database me-2"></i>OpenAQ
+                                    </div>
+                                    <span class="aqi-badge bg-secondary" id="openaqCategory">--</span>
+                                </div>
+                                <div class="display-6 fw-bold" id="openaqAqi">--</div>
+                                <div class="text-muted small" id="openaqStation">Station: --</div>
+                                <div class="text-muted small mt-1">
+                                    PM2.5: <span id="openaqPm25">--</span> | PM10: <span id="openaqPm10">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="mt-5">
+        <h2 class="section-title text-center">Search Any Location</h2>
+        <p class="section-subtitle text-center">
+            Search for any city, area, or landmark to check air quality
+        </p>
+        
+        <div class="search-container">
+            <input 
+                type="text" 
+                id="citySearch" 
+                class="search-input" 
+                placeholder="Type any city name, area, or location..."
+                autocomplete="off"
+            >
+            <button class="search-button" onclick="searchCity()">
+                <i class="fas fa-search"></i>
+            </button>
+            
+            <!-- Search Suggestions Dropdown -->
+            <div id="searchSuggestions" class="search-suggestions d-none"></div>
+        </div>
+        
+        <!-- Search Help Text -->
+        <div class="text-center mt-3">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Search uses live geocoding - type any location name in India
+            </small>
+        </div>
+    </div>
+
+    <!-- Interactive Map -->
+    <div class="mt-5">
+        <h2 class="section-title">AQI Map View</h2>
+        <p class="section-subtitle">
+            Visualize air quality across different locations on the interactive map
+        </p>
+        
+        <div class="map-container">
+            <div id="aqiMap"></div>
+        </div>
+    </div>
+
+    <!-- Information Sections -->
+    <div class="row mt-5">
+        <!-- AQI Scale -->
+        <div class="col-lg-6 mb-4">
+            <div class="info-card">
+                <h3 class="info-card-title">
+                    <div class="info-card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    AQI Scale & Categories
+                </h3>
+                
+                <div class="aqi-scale">
+                    <div class="aqi-scale-item">
+                        <div class="aqi-scale-color" style="background: var(--aqi-good);">0-50</div>
+                        <div class="aqi-scale-info">
+                            <div class="aqi-scale-category">Good</div>
+                            <div class="aqi-scale-range">Air quality is satisfactory, minimal health risk</div>
+                        </div>
+                    </div>
+                    
+                    <div class="aqi-scale-item">
+                        <div class="aqi-scale-color" style="background: var(--aqi-satisfactory);">51-100</div>
+                        <div class="aqi-scale-info">
+                            <div class="aqi-scale-category">Satisfactory</div>
+                            <div class="aqi-scale-range">Minor discomfort to sensitive people</div>
+                        </div>
+                    </div>
+                    
+                    <div class="aqi-scale-item">
+                        <div class="aqi-scale-color" style="background: var(--aqi-moderate); color: #333;">101-200</div>
+                        <div class="aqi-scale-info">
+                            <div class="aqi-scale-category">Moderate</div>
+                            <div class="aqi-scale-range">Breathing discomfort to people with lung disease</div>
+                        </div>
+                    </div>
+                    
+                    <div class="aqi-scale-item">
+                        <div class="aqi-scale-color" style="background: var(--aqi-poor);">201-300</div>
+                        <div class="aqi-scale-info">
+                            <div class="aqi-scale-category">Poor</div>
+                            <div class="aqi-scale-range">Breathing discomfort to most people on prolonged exposure</div>
+                        </div>
+                    </div>
+                    
+                    <div class="aqi-scale-item">
+                        <div class="aqi-scale-color" style="background: var(--aqi-very-poor);">301-400</div>
+                        <div class="aqi-scale-info">
+                            <div class="aqi-scale-category">Very Poor</div>
+                            <div class="aqi-scale-range">Respiratory illness on prolonged exposure</div>
+                        </div>
+                    </div>
+                    
+                    <div class="aqi-scale-item">
+                        <div class="aqi-scale-color" style="background: var(--aqi-severe);">401+</div>
+                        <div class="aqi-scale-info">
+                            <div class="aqi-scale-category">Severe</div>
+                            <div class="aqi-scale-range">Serious health impacts, avoid outdoor activities</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Recommendations -->
+        <div class="col-lg-6 mb-4">
+            <div class="info-card">
+                <h3 class="info-card-title">
+                    <div class="info-card-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    Health Recommendations
+                </h3>
+                
+                <div class="health-recommendation">
+                    <div class="health-recommendation-title">
+                        <i class="fas fa-circle text-success me-2"></i>
+                        When AQI is Good (0-50)
+                    </div>
+                    <p class="health-recommendation-text">
+                        Ideal for outdoor activities. Air quality is excellent, suitable for everyone including sensitive groups.
+                    </p>
+                </div>
+                
+                <div class="health-recommendation">
+                    <div class="health-recommendation-title">
+                        <i class="fas fa-circle text-warning me-2"></i>
+                        When AQI is Moderate (101-200)
+                    </div>
+                    <p class="health-recommendation-text">
+                        Sensitive individuals should consider reducing prolonged outdoor exertion. Wear mask if necessary.
+                    </p>
+                </div>
+                
+                <div class="health-recommendation">
+                    <div class="health-recommendation-title">
+                        <i class="fas fa-circle text-danger me-2"></i>
+                        When AQI is Poor (201-300)
+                    </div>
+                    <p class="health-recommendation-text">
+                        Everyone should avoid prolonged outdoor exposure. People with respiratory issues should stay indoors.
+                    </p>
+                </div>
+                
+                <div class="health-recommendation">
+                    <div class="health-recommendation-title">
+                        <i class="fas fa-circle me-2" style="color: var(--aqi-severe);"></i>
+                        When AQI is Severe (401+)
+                    </div>
+                    <p class="health-recommendation-text">
+                        Health alert! Everyone should avoid all outdoor activities. Use air purifiers indoors. Wear N95 masks if going out.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="row mt-4 mb-5">
+        <div class="col-md-4 mb-3">
+            <div class="info-card text-center">
+                <div class="info-card-icon mx-auto mb-3" style="background: var(--success-gradient);">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <h5 class="fw-bold">What is PM2.5?</h5>
+                <p class="text-muted mb-0" style="font-size: 14px;">
+                    Fine particulate matter less than 2.5 micrometers in diameter. Can penetrate deep into lungs and bloodstream.
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="info-card text-center">
+                <div class="info-card-icon mx-auto mb-3" style="background: var(--info-gradient);">
+                    <i class="fas fa-wind"></i>
+                </div>
+                <h5 class="fw-bold">What is PM10?</h5>
+                <p class="text-muted mb-0" style="font-size: 14px;">
+                    Coarse particulate matter less than 10 micrometers. Includes dust, pollen, and mold that can irritate airways.
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="info-card text-center">
+                <div class="info-card-icon mx-auto mb-3" style="background: var(--warning-gradient);">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h5 class="fw-bold">Stay Protected</h5>
+                <p class="text-muted mb-0" style="font-size: 14px;">
+                    Use N95/N99 masks, run air purifiers, avoid outdoor activities during high pollution, and stay hydrated.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-white py-4 mt-5 border-top">
+    <div class="container text-center">
+        <p class="text-muted mb-2">
+            <i class="fas fa-wind me-2"></i>
+            <strong>Pollution Management System</strong>
+        </p>
+        <p class="text-muted mb-0" style="font-size: 14px;">
+            Real-time air quality monitoring for a healthier tomorrow
+        </p>
+        <div class="mt-3">
+            <a href="index.html" class="btn btn-sm btn-outline-modern">
+                <i class="fas fa-user me-1"></i> Citizen Login
+            </a>
+            <a href="register.html" class="btn btn-sm btn-outline-modern ms-2">
+                <i class="fas fa-user-plus me-1"></i> Register
+            </a>
+        </div>
+    </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/public-aqi-dashboard.js"></script>
+</body>
+</html>
